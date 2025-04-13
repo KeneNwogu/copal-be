@@ -1,8 +1,9 @@
-import { Controller, Get, Inject, Res, Query, UnauthorizedException } from '@nestjs/common';
-import { Response } from 'express';
-import { GoogleAuthService } from 'src/config/google-auth.service';
+import { Controller, Get, Inject, Res, Query, UnauthorizedException, UseGuards, Req } from '@nestjs/common';
+import { Response, Request } from 'express';
+import { GoogleAuthService } from '../config/google-auth.service';
 import axios from 'axios';
 import { UserService } from './user.service';
+import { AuthGuard } from '../guards/auth.guard';
 
 @Controller('user')
 export class UserController {
@@ -87,5 +88,19 @@ export class UserController {
         } catch (error) {
             throw new UnauthorizedException('Failed to authenticate with Google');
         }
+    }
+
+    @Get('profile')
+    @UseGuards(AuthGuard)
+    async getProfile(@Req() req: Request & { user: any }) {
+        const user = req.user;
+        return {
+            id: user._id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            profilePicture: user.profilePicture,
+            signUpMethod: user.signUpMethod
+        };
     }
 }

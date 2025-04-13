@@ -1,0 +1,41 @@
+# Version control
+.git
+.gitignore
+
+# Dependencies
+node_modules
+
+# Build output
+dist
+
+# Environment files
+.env
+.env.*
+
+# Development files
+.eslintrc.js
+.prettierrc
+
+# Test files
+test
+coverage
+
+# IDE files
+.vscode
+.idea
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Docker files
+Dockerfile
+.dockerignore
+
+# Documentation
+README.md
+
+# Temporary files
+.DS_Store
+Thumbs.db
