@@ -1,9 +1,11 @@
-import { Controller, Get, Inject, Res, Query, UnauthorizedException, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Inject, Res, Query, UnauthorizedException, UseGuards, Req, Post, Body, BadRequestException } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { GoogleAuthService } from '../config/google-auth.service';
 import axios from 'axios';
 import { UserService } from './user.service';
 import { AuthGuard } from '../guards/auth.guard';
+import { ZodValidationPipe } from '../pipes/zod-validation.pipe';
+import { CreateUserDto, CreateUserSchema, LoginUserDto, LoginUserSchema } from './dto/create-user.dto';
 
 @Controller('user')
 export class UserController {
@@ -90,6 +92,28 @@ export class UserController {
         }
     }
 
+    @Post("")
+    async registerUser(@Body(new ZodValidationPipe(CreateUserSchema)) body: CreateUserDto){
+        let { email, firstName, lastName, password } = body;
+
+        let user = await this.userService.findByEmail(email);
+        if (user) throw new BadRequestException("User already exists");
+        
+        return await this.userService.createUser({
+            email,
+            firstName,
+            lastName,
+            password,
+            signUpMethod: "password"
+        })
+    }
+
+    @Post("login")
+    async loginUser(@Body(new ZodValidationPipe(LoginUserSchema)) body: LoginUserDto){
+        let { email, password } = body;
+        return await this.userService.loginUser(email, password);
+    }
+
     @Get('profile')
     @UseGuards(AuthGuard)
     async getProfile(@Req() req: Request & { user: any }) {
@@ -101,6 +125,26 @@ export class UserController {
             lastName: user.lastName,
             profilePicture: user.profilePicture,
             signUpMethod: user.signUpMethod
+        };
+    }
+
+    @Get('dashboard')
+    @UseGuards(AuthGuard)
+    async userDashboardOverview(@Req() req: Request & { user: any }){
+        const userId = req.user._id;
+
+        const [referencesCount, drawingsCount, latestReference, latestDrawing] = await Promise.all([
+            this.userService.countReferencesByUser(userId),
+            this.userService.countDrawingsForUser(userId),
+            this.userService.findLatestReferenceForUser(userId),
+            this.userService.findLatestDrawingForUser(userId)
+        ]);
+
+        return {
+            totalReferences: referencesCount,
+            totalDrawings: drawingsCount,
+            lastReferenceUpload: latestReference?.createdAt || null,
+            lastDrawingUpload: latestDrawing?.createdAt || null
         };
     }
 }
