@@ -48,8 +48,12 @@ export class DrawingController {
     @UploadedFile() file: Express.Multer.File,
     @Body(new ZodValidationPipe(createDrawingSchema)) body: CreateDrawingDto
   ) {
+    if(!file) throw new BadRequestException("image of drawing is required");
     const imageUrl = await this.cloudinaryService.uploadImage(file);
-    const day = getCurrentDayStart();
+
+    const day = new Date();
+    day.setUTCHours(day.getUTCHours() - req.userTimezoneOffset);
+    day.setUTCHours(0, 0, 0, 0);
 
     const reference = await this.referenceService.getReferenceById(body.reference, req.user._id);
     if (!reference) throw new NotFoundException("reference not found");
@@ -59,7 +63,7 @@ export class DrawingController {
       image: imageUrl,
       reference: reference._id as Types.ObjectId,
       user: req.user._id,
-      day,
+      day, 
       feedback
     });
   }

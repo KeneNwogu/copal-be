@@ -7,11 +7,13 @@ import { Drawing, DrawingSchema } from '../models/drawing.schema';
 import { GuardsModule } from '../guards/guards.module';
 import { GeminiService } from '../config/gemini.service';
 import { ReferenceModule } from '../reference/reference.module';
+import { User, UserSchema } from '../models/user.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
-      {name: Drawing.name, schema: DrawingSchema}
+      {name: Drawing.name, schema: DrawingSchema},
+      {name: User.name, schema: UserSchema}
     ]),
     GuardsModule,
     ReferenceModule

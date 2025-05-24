@@ -21,6 +21,12 @@ export class User extends Document {
 
   @Prop({ required: true })
   signUpMethod: string
+
+  @Prop({ default: 0 })
+  currentStreak: number
+
+  @Prop({ default: 0 })
+  maxStreaksObtained: 0
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

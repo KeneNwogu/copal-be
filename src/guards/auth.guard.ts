@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, CanActivate, ExecutionContext, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { GuardsService } from './guards.service';
@@ -23,7 +23,14 @@ export class AuthGuard implements CanActivate {
              
             // Attach the user payload to the request object
             request.user = user;
-        } catch {
+            // default timezone is WAT (UTC+01:00)
+            request.userTimezoneOffset = Math.round((request.headers?.timezone || -60) / 60);
+
+            if (Math.abs(request.userTimezoneOffset) > 12)
+                throw new BadRequestException("invalid timezone provided");
+
+        } catch (e: any) {
+            if (e instanceof BadRequestException) throw e;
             throw new UnauthorizedException('Invalid token');
         }
         return true;

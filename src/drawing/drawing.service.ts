@@ -2,12 +2,15 @@ import { Injectable, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Drawing } from '../models/drawing.schema';
+import { User } from '../models/user.schema';
+import { differenceInDays } from 'date-fns';
 
 @Injectable()
 export class DrawingService {
     constructor(
-        @InjectModel(Drawing.name) private drawingModel: Model<Drawing>
-    ) {}
+        @InjectModel(Drawing.name) private readonly drawingModel: Model<Drawing>,
+        @InjectModel(User.name) private readonly userModel: Model<User>
+    ) { }
 
     async createDrawing(data: {
         image: string;
@@ -37,6 +40,37 @@ export class DrawingService {
                 }
             };
 
+            // calculate streaks for user
+            // get latest drawing previously uploaded
+            const latestDrawing = await this.drawingModel.findOne({ user: data.user, day: { $ne: data.day } })
+                .sort({ _id: -1 });
+
+            const user = await this.userModel.findById(data.user);
+
+            let currentStreak = (user.currentStreak || 0) + 1;
+            let maxStreaksObtained = user.maxStreaksObtained || 0;
+            
+            if (latestDrawing && differenceInDays(data.day, latestDrawing.day) == 1) {
+                await user.updateOne({
+                    $inc: {
+                        currentStreak: 1
+                    },
+                    $set: {
+                        maxStreaksObtained: currentStreak > maxStreaksObtained ? currentStreak : maxStreaksObtained
+                    }
+                })
+            }
+
+            else {
+                // set streak to 1
+                await user.updateOne({
+                    $set: {
+                        currentStreak: 1,
+                        maxStreaksObtained: maxStreaksObtained > 1 ? maxStreaksObtained : 1
+                    }
+                })
+            }
+
             const drawing = await this.drawingModel.findOneAndUpdate(
                 {
                     user: data.user,
@@ -62,7 +96,7 @@ export class DrawingService {
             const drawings = await this.drawingModel
                 .find(query)
                 .sort({ createdAt: 1 })
-                
+
             return drawings;
         } catch (error) {
             throw new Error(`Failed to fetch drawings: ${error.message}`);
